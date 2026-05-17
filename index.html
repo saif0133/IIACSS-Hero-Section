@@ -1,0 +1,595 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+.hp{width:100%;background:#060c18;overflow:hidden;position:relative;font-family:var(--font-sans),sans-serif;user-select:none}
+canvas.bgc{position:absolute;inset:0;pointer-events:none;z-index:2}
+
+.tabs{display:flex;z-index:20;position:relative;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(6,12,24,.92);backdrop-filter:blur(16px)}
+.tab{flex:1;padding:18px 0;text-align:center;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(255,255,255,.28);cursor:pointer;border-right:1px solid rgba(255,255,255,.06);transition:color .3s;position:relative}
+.tab:last-child{border-right:none}
+.tab.active{color:#fff}
+.tab-line{position:absolute;bottom:0;left:0;right:0;height:2.5px;border-radius:3px 3px 0 0;transform:scaleX(0);transition:transform .45s cubic-bezier(.22,1,.36,1)}
+.tab.active .tab-line{transform:scaleX(1)}
+
+.slides-wrap{position:relative;height:680px;overflow:hidden;z-index:5}
+.slide{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:96px;
+  padding:48px 56px 60px;
+  opacity:0;pointer-events:none;
+  transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .55s ease;
+}
+.slide.active{opacity:1;transform:none;pointer-events:auto;z-index:5}
+.slide.exit-l{transform:translateX(-80px) rotateY(12deg) scale(.88);opacity:0;z-index:4}
+.slide.exit-r{transform:translateX(80px) rotateY(-12deg) scale(.88);opacity:0;z-index:4}
+.slide.from-l{transform:translateX(80px) rotateY(-10deg) scale(.93);opacity:0}
+.slide.from-r{transform:translateX(-80px) rotateY(10deg) scale(.93);opacity:0}
+
+.s-left{flex:0 0 440px;display:flex;flex-direction:column;justify-content:center;max-width:440px}
+.s-tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid;margin-bottom:24px;width:fit-content}
+.s-tag-dot{width:7px;height:7px;border-radius:50%}
+
+.s-title{font-size:52px;font-weight:900;line-height:1.05;color:#fff;margin-bottom:16px;letter-spacing:-.025em}
+.s-title em{font-style:normal;display:block}
+.s-body{font-size:15px;line-height:1.8;color:rgba(255,255,255,.55);margin-bottom:32px;max-width:380px}
+
+.s-stats{display:flex;gap:32px;margin-bottom:36px}
+.sst{display:flex;flex-direction:column;gap:4px}
+.sst-v{font-size:28px;font-weight:900;color:#fff;line-height:1}
+.sst-l{font-size:11px;color:rgba(255,255,255,.38);font-weight:600;letter-spacing:.06em}
+
+.s-btn{display:inline-flex;align-items:center;gap:9px;padding:14px 28px;border-radius:12px;border:none;font-size:14px;font-weight:800;letter-spacing:.04em;cursor:pointer;transition:transform .2s,opacity .2s;width:fit-content}
+.s-btn:hover{transform:translateY(-3px);opacity:.85}
+.s-btn svg{transition:transform .2s}
+.s-btn:hover svg{transform:translateX(5px)}
+
+.s-right{flex:0 0 540px;display:flex;align-items:center;justify-content:center;position:relative}
+.vis-back{position:absolute;width:350px;height:440px;border-radius:32px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025)}
+.vis-front{width:370px;min-height:500px;border-radius:32px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:34px 26px 28px;gap:22px;position:relative;overflow:visible;box-shadow:0 45px 110px rgba(0,0,0,.72)}
+.vis-front:hover{z-index:30}
+.vis-hero{width:100%;height:190px;border-radius:24px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px}
+.vis-hero.vis-media{
+  width:100%;
+  height:280px;
+  position:relative;
+  overflow:hidden;
+  display:block;
+  border-radius:24px;
+  background:transparent !important;
+  z-index:3;
+}
+.vis-front:hover .vis-hero.vis-media{
+  overflow:visible;
+}
+.vis-hero.vis-media img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center bottom;
+  border-radius:24px;
+}
+.vis-hero.vis-media img.img-static2{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+  border-radius:24px;
+}
+.vis-hero.vis-media .img-static{z-index:1}
+.vis-hero.vis-media .img-hover{
+  z-index:2;
+  object-position:center bottom;
+  transition:transform .45s cubic-bezier(.23,1.2,.32,1),filter .35s ease,border-radius .35s ease;
+  transform-origin:bottom center;
+  will-change:transform;
+}
+.vis-front:hover .vis-hero.vis-media .img-hover{
+  object-fit:contain;
+  transform:scale(2) translateY(-12px);
+  border-radius:0;
+}
+.vis-front:hover .vis-hero.vis-media .legacy-img-hover2{
+  display: block;
+  object-fit:contain;
+  transform:scale(1.5) translateY(-12px) !important;
+  border-radius:0;
+}
+.vis-front:hover .vis-hero.vis-media .WT{
+  filter:brightness(15) contrast(15) saturate(0);
+}
+.vis-front:hover .vis-hero.vis-media + .vis-lbl{
+  transform:translateY(-10px);
+}
+.vis-hero.vis-media + .vis-lbl{
+  transition:transform .35s ease;
+}
+.vis-lbl{font-size:20px;font-weight:800;color:rgba(255,255,255,.72);text-align:center;letter-spacing:.02em}
+.vis-bars{display:flex;gap:8px;align-items:flex-end;height:70px;width:100%}
+.vbar{border-radius:8px 8px 0 0;flex:1;transition:height .6s ease}
+
+.dots-row{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:20}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);cursor:pointer;transition:all .35s}
+.dot.active{width:24px;border-radius:4px}
+.navs{position:absolute;bottom:20px;right:32px;display:flex;gap:9px;z-index:20}
+.nav-btn{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.nav-btn:hover{background:rgba(255,255,255,.14);color:#fff;transform:scale(1.05)}
+.prog-bar{height:3px;background:rgba(255,255,255,.07);position:relative;z-index:10}
+.prog-fill{height:100%;width:0%;transition:width linear}
+
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.mini-cell{height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.05em}
+
+
+/* APP CARD ONLY */
+
+.app-media .app-gradient-bg{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 50% 70%, rgba(24,119,242,.35) 0%, rgba(24,119,242,.12) 28%, transparent 55%),
+    linear-gradient(180deg,#03152a 0%,#06315f 45%,#041b34 100%);
+}
+
+.app-media{
+  overflow:hidden !important;
+}
+
+.app-media::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:88px;
+  z-index:4;
+  pointer-events:none;
+  border-radius:24px 24px 0 0;
+  background:linear-gradient(
+    180deg,
+    #03152a 0%,
+    #052042 45%,
+    rgba(5,32,66,.96) 68%,
+    rgba(5,32,66,0) 100%
+  );
+}
+
+.vis-front:hover .app-media{
+  overflow:visible !important;
+}
+
+.vis-front:hover .app-media::after{
+  opacity:0;
+}
+
+.app-media .app-static{
+  width:100% !important;
+  height:100% !important;
+  top:0 !important;
+  left:0 !important;
+  object-fit:cover !important;
+  object-position:center bottom !important;
+  transform:none !important;
+  border-radius:24px !important;
+}
+
+.app-media .app-hover2{
+  width:100% !important;
+  height:100% !important;
+  top:0 !important;
+  left:0 !important;
+  object-fit:cover !important;
+  object-position:center bottom !important;
+  transform:none !important;
+  transform-origin:center bottom !important;
+  border-radius:24px !important;
+}
+
+.vis-front:hover .app-media .app-hover2{
+  object-fit:contain !important;
+  transform:scale(1.42) translateY(-8px) !important;
+  border-radius:0 !important;
+}
+
+
+/* GLOBAL VIDEO BACKGROUND */
+.global-bg-video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:0;
+  opacity:.9;
+  pointer-events:none;
+  filter:saturate(1.25) brightness(.82) contrast(1.12);
+}
+
+.video-overlay{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  transition:background-color .7s ease, opacity .7s ease;
+  background-color:var(--video-color);
+  mix-blend-mode:color;
+  opacity:.78;
+}
+
+.video-overlay::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(3,10,25,.30),rgba(3,10,25,.66));
+  mix-blend-mode:normal;
+}
+
+.hp{
+  --video-color:#6d5dfc;
+}
+
+.hp.theme-blue{
+  --video-color:#38bdf8;
+}
+
+.hp.theme-pink{
+  --video-color:#f472b6;
+}
+
+.hp.theme-green{
+  --video-color:#34d399;
+}
+
+.hp.theme-orange{
+  --video-color:#fbbf24;
+}
+
+@media(max-width:1100px){
+  .slide{gap:42px;padding:44px 32px 60px}
+  .s-left{flex:0 0 390px;max-width:390px}
+  .s-right{flex:0 0 430px}
+  .vis-front{width:320px;min-height:450px}
+  .vis-hero.vis-media{height:235px}
+  .vis-back{width:310px;height:390px}
+}
+
+</style>
+
+<div class="hp" id="hp">
+<video class="global-bg-video" autoplay muted loop playsinline preload="auto">
+  <source src="https://iiacss.org/wp-content/uploads/2026/05/121184-724686056.mp4" type="video/mp4">
+</video>
+<div class="video-overlay"></div>
+<script>
+const bgVideo = document.querySelector('.global-bg-video');
+
+bgVideo.playbackRate = 0.45;
+</script>
+
+<canvas class="bgc" id="bgc"></canvas>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-i="0">IIACSS<div class="tab-line" style="background:linear-gradient(90deg,#a78bfa,#60a5fa)"></div></div>
+  <div class="tab" data-i="1">IOT Dashboard<div class="tab-line" style="background:#38bdf8"></div></div>
+  <div class="tab" data-i="2">CCI Index<div class="tab-line" style="background:#f472b6"></div></div>
+  <div class="tab" data-i="3">IIACSS App<div class="tab-line" style="background:#34d399"></div></div>
+  <div class="tab" data-i="4">Our Solutions<div class="tab-line" style="background:#fbbf24"></div></div>
+</div>
+
+<div class="slides-wrap" id="sw">
+
+  <!-- SLIDE 0: ABOUT -->
+  <div class="slide active" data-i="0">
+    <div class="s-left" style="max-width:480px">
+      <div class="s-tag" style="color:#c4b5fd;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.12)">
+        <span class="s-tag-dot" style="background:#a78bfa"></span>Independent Research Group
+      </div>
+      <div class="s-title">
+        20+ years of giving<br><em style="background:linear-gradient(90deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">people a voice.</em>
+      </div>
+      <p class="s-body">IIACSS is the leading market and social research group in Iraq and the MENA region. First to conduct a public opinion survey in Iraq's history. Sole representative of Gallup International in Iraq and Jordan.</p>
+      <div class="s-stats">
+        <div class="sst"><span class="sst-v" style="color:#a78bfa">20+</span><span class="sst-l">Years active</span></div>
+        <div class="sst"><span class="sst-v" style="color:#60a5fa">9+</span><span class="sst-l">Countries</span></div>
+        <div class="sst"><span class="sst-v" style="color:#34d399">ISO</span><span class="sst-l">9001:2015</span></div>
+        <div class="sst"><span class="sst-v" style="color:#fbbf24">#1</span><span class="sst-l">Gallup rep, Iraq</span></div>
+      </div>
+      <button class="s-btn" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff" onclick="openLink('https://iiacss.org/about-iiacss-group/')">
+        Learn about IIACSS
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="s-right" style="flex:0 0 320px">
+      <div class="vis-back" style="transform:translate(-44px,34px) rotate(-7deg)"></div>
+      <div class="vis-front" style="border-color:rgba(167,139,250,.25)">
+        <div class="vis-hero vis-media">
+
+  <img
+    class="img-static img-static2"
+    src="https://iiacss.org/wp-content/uploads/2026/05/6bda8809-7988-4aaf-ac30-d198b4c6c67b.png"
+    alt="IIACSS Card"
+  >
+
+</div>
+        <div class="vis-lbl">Iraq & MENA Research Group</div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">ESOMAR</span>
+            <span style="font-size:10px;color:#34d399;font-weight:700">✓ Member</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">Gallup International</span>
+            <span style="font-size:10px;color:#34d399;font-weight:700">✓ Sole rep</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">ISO 9001:2015</span>
+            <span style="font-size:10px;color:#34d399;font-weight:700">✓ Certified</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">WAPOR</span>
+            <span style="font-size:10px;color:#34d399;font-weight:700">✓ Member</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 1: IOT -->
+  <div class="slide" data-i="1">
+    <div class="s-left">
+      <div class="s-tag" style="color:#7dd3fc;border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.1)">
+        <span class="s-tag-dot" style="background:#38bdf8"></span>Social Research
+      </div>
+      <div class="s-title">Iraq Public<br><em style="color:#38bdf8">Opinion Tracker.</em></div>
+      <p class="s-body">A national, representative bi-annual tracker covering 6 key categories: Life Satisfaction, National Identity, Governance, Sectarianism, Democracy, and Religion. Free public access.</p>
+      <div class="s-stats">
+        <div class="sst"><span class="sst-v" style="color:#38bdf8">6</span><span class="sst-l">Categories</span></div>
+        <div class="sst"><span class="sst-v" style="color:#38bdf8">Bi-annual</span><span class="sst-l">Frequency</span></div>
+        <div class="sst"><span class="sst-v" style="color:#38bdf8">Free</span><span class="sst-l">Public access</span></div>
+      </div>
+      <button class="s-btn" style="background:#0369a1;color:#fff" onclick="openLink('https://iiacss.org/iraq-public-opinion-dashboard/')">
+        View IOT Dashboard
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="s-right">
+      <div class="vis-back" style="transform:translate(-40px,30px) rotate(-6deg)"></div>
+      <div class="vis-front" style="border-color:rgba(56,189,248,.25)">
+        <div class="vis-hero vis-media">
+          <img class="img-static" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-13-scaled.png" alt="Iraq Public Opinion Tracker">
+          <img class="img-hover WT" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-14ي-scaled.png" alt="Iraq Public Opinion Tracker hover">
+        </div>
+        <div class="vis-lbl">Iraq Opinion Tracker</div>
+        <div class="vis-bars">
+          <div class="vbar" style="background:rgba(56,189,248,.25);height:18px"></div>
+          <div class="vbar" style="background:rgba(56,189,248,.45);height:30px"></div>
+          <div class="vbar" style="background:#38bdf8;height:46px"></div>
+          <div class="vbar" style="background:rgba(56,189,248,.55);height:28px"></div>
+          <div class="vbar" style="background:rgba(56,189,248,.35);height:20px"></div>
+          <div class="vbar" style="background:#38bdf8;height:38px"></div>
+          <div class="vbar" style="background:rgba(56,189,248,.45);height:24px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: CCI -->
+  <div class="slide" data-i="2">
+    <div class="s-left">
+      <div class="s-tag" style="color:#f9a8d4;border-color:rgba(244,114,182,.35);background:rgba(244,114,182,.1)">
+        <span class="s-tag-dot" style="background:#f472b6"></span>Consumer Research
+      </div>
+      <div class="s-title">Consumer<br><em style="color:#f472b6">Confidence Index.</em></div>
+      <p class="s-body">A regional benchmark measuring how consumers feel about the economy, personal finances, and purchasing power — tracking confidence trends across Iraq and the MENA region.</p>
+      <div class="s-stats">
+        <div class="sst"><span class="sst-v" style="color:#f472b6">CCI</span><span class="sst-l">Benchmark</span></div>
+        <div class="sst"><span class="sst-v" style="color:#f472b6">MENA</span><span class="sst-l">Coverage</span></div>
+        <div class="sst"><span class="sst-v" style="color:#f472b6">Live</span><span class="sst-l">Dashboard</span></div>
+      </div>
+      <button class="s-btn" style="background:#9d174d;color:#fff" onclick="openLink('https://iiacss.org/cci-dashboard/')">
+        View CCI Dashboard
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="s-right">
+      <div class="vis-back" style="transform:translate(42px,-30px) rotate(7deg)"></div>
+      <div class="vis-front" style="border-color:rgba(244,114,182,.25)">
+        <div class="vis-hero vis-media">
+          <img class="img-static" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-163-scaled.png" alt="Consumer Confidence Index">
+          <img class="img-hover WT" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-129-scaled.png" alt="Consumer Confidence Index hover">
+        </div>
+        <div class="vis-lbl">Consumer Confidence Index</div>
+        <div class="vis-bars">
+          <div class="vbar" style="background:rgba(244,114,182,.3);height:16px"></div>
+          <div class="vbar" style="background:#f472b6;height:44px"></div>
+          <div class="vbar" style="background:rgba(244,114,182,.5);height:32px"></div>
+          <div class="vbar" style="background:rgba(244,114,182,.35);height:22px"></div>
+          <div class="vbar" style="background:#f472b6;height:40px"></div>
+          <div class="vbar" style="background:rgba(244,114,182,.45);height:28px"></div>
+          <div class="vbar" style="background:rgba(244,114,182,.3);height:14px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: APP -->
+  <div class="slide" data-i="3">
+    <div class="s-left">
+      <div class="s-tag" style="color:#6ee7b7;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)">
+        <span class="s-tag-dot" style="background:#34d399"></span>Survey Platform
+      </div>
+      <div class="s-title">IIACSS<br><em style="color:#34d399">Survey App.</em></div>
+      <p class="s-body">A dedicated mobile survey platform for field research across the MENA region. Seamless data collection, real-time syncing, and full offline capabilities built for field teams.</p>
+      <div class="s-stats">
+        <div class="sst"><span class="sst-v" style="color:#34d399">Mobile</span><span class="sst-l">iOS & Android</span></div>
+        <div class="sst"><span class="sst-v" style="color:#34d399">Offline</span><span class="sst-l">Field ready</span></div>
+        <div class="sst"><span class="sst-v" style="color:#34d399">Live</span><span class="sst-l">Data sync</span></div>
+      </div>
+      <button class="s-btn" style="background:#065f46;color:#fff" onclick="openLink('https://iiacss.org/iiacss-app/')">
+        Explore the App
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="s-right">
+      <div class="vis-back" style="transform:translate(-38px,36px) rotate(-8deg)"></div>
+      <div class="vis-front" style="border-color:rgba(52,211,153,.25)">
+        <div class="vis-hero vis-media app-media">
+          <div class="app-gradient-bg"></div>
+          <img class="img-hover app-hover2" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Assdset-15-scaled.png" alt="IIACSS Survey App hover">
+        </div>
+        <div class="vis-lbl">IIACSS Survey App</div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+          <div style="height:9px;border-radius:5px;background:rgba(52,211,153,.45);width:92%"></div>
+          <div style="height:9px;border-radius:5px;background:rgba(52,211,153,.25);width:68%"></div>
+          <div style="height:9px;border-radius:5px;background:rgba(52,211,153,.55);width:80%"></div>
+          <div style="height:9px;border-radius:5px;background:rgba(52,211,153,.2);width:55%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: SOLUTIONS -->
+  <div class="slide" data-i="4">
+    <div class="s-left">
+      <div class="s-tag" style="color:#fde68a;border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.1)">
+        <span class="s-tag-dot" style="background:#fbbf24"></span>Full Portfolio
+      </div>
+      <div class="s-title">How can we<br><em style="color:#fbbf24">serve you?</em></div>
+      <p class="s-body">From market intelligence and social research to retail auditing and healthcare studies — a comprehensive suite of research solutions tailored for the MENA region.</p>
+      <div class="s-stats">
+        <div class="sst"><span class="sst-v" style="color:#fbbf24">4+</span><span class="sst-l">Core services</span></div>
+        <div class="sst"><span class="sst-v" style="color:#fbbf24">Custom</span><span class="sst-l">Tailored</span></div>
+        <div class="sst"><span class="sst-v" style="color:#fbbf24">End-to-end</span><span class="sst-l">Delivery</span></div>
+      </div>
+      <button class="s-btn" style="background:#92400e;color:#fff" onclick="openLink('https://iiacss.org/solutions/')">
+        View All Solutions
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="s-right">
+      <div class="vis-back" style="transform:translate(44px,-34px) rotate(6deg)"></div>
+      <div class="vis-front" style="border-color:rgba(251,191,36,.25)">
+        <div class="vis-hero vis-media">
+          <img class="img-static" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-20-scaled.png" alt="Our Solutions">
+          <img class="img-hover" src="https://iiacss.org/saif-staging/wp-content/uploads/2026/05/Asset-22-scaled.png" alt="Our Solutions hover">
+        </div>
+        <div class="vis-lbl">Our Solutions</div>
+        <div class="mini-grid">
+          <div class="mini-cell" style="background:rgba(56,189,248,.18);color:#38bdf8">Market</div>
+          <div class="mini-cell" style="background:rgba(251,191,36,.18);color:#fbbf24">Retail</div>
+          <div class="mini-cell" style="background:rgba(52,211,153,.18);color:#34d399">Social</div>
+          <div class="mini-cell" style="background:rgba(244,114,182,.18);color:#f472b6">Health</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="dots-row" id="dots">
+  <div class="dot active" data-i="0" style="background:#a78bfa"></div>
+  <div class="dot" data-i="1"></div>
+  <div class="dot" data-i="2"></div>
+  <div class="dot" data-i="3"></div>
+  <div class="dot" data-i="4"></div>
+</div>
+<div class="navs">
+  <div class="nav-btn" id="prev"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>
+  <div class="nav-btn" id="next"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+</div>
+<div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
+
+</div>
+
+<script>
+const COLORS=['#a78bfa','#38bdf8','#f472b6','#34d399','#fbbf24'];
+const DOT_COLORS=['#a78bfa','#38bdf8','#f472b6','#34d399','#fbbf24'];
+const N=5;
+const slides=document.querySelectorAll('.slide');
+const tabs=document.querySelectorAll('.tab');
+const dots=document.querySelectorAll('.dot');
+const pf=document.getElementById('pf');
+let cur=0,timer;
+const DUR=5500;
+
+function applyTheme(index){
+  const hero = document.getElementById('hp');
+  if(!hero) return;
+
+  hero.classList.remove('theme-blue','theme-pink','theme-green','theme-orange');
+
+  if(index === 1) hero.classList.add('theme-blue');
+  if(index === 2) hero.classList.add('theme-pink');
+  if(index === 3) hero.classList.add('theme-green');
+  if(index === 4) hero.classList.add('theme-orange');
+}
+
+
+function goTo(next,dir){
+  if(next===cur)return;
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add(dir>0?'exit-l':'exit-r');
+  slides[next].classList.add(dir>0?'from-l':'from-r');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    slides[next].classList.remove('from-l','from-r');
+    slides[next].classList.add('active');
+  }));
+  setTimeout(()=>slides[cur].classList.remove('exit-l','exit-r'),750);
+  tabs.forEach((t,i)=>t.classList.toggle('active',i===next));
+  dots.forEach((d,i)=>{
+    d.classList.toggle('active',i===next);
+    d.style.background=i===next?DOT_COLORS[i]:'rgba(255,255,255,.2)';
+  });
+  pf.style.background=COLORS[next];
+  cur=next;
+  applyTheme(cur);
+  resetTimer();
+}
+function resetTimer(){
+  clearTimeout(timer);
+  pf.style.transition='none';pf.style.width='0%';
+  setTimeout(()=>{pf.style.transition=`width ${DUR}ms linear`;pf.style.width='100%'},40);
+  timer=setTimeout(()=>goTo((cur+1)%N,1),DUR);
+}
+tabs.forEach(t=>t.addEventListener('click',()=>{const i=+t.dataset.i;goTo(i,i>cur?1:-1)}));
+dots.forEach(d=>d.addEventListener('click',()=>{const i=+d.dataset.i;goTo(i,i>cur?1:-1)}));
+document.getElementById('prev').addEventListener('click',()=>goTo((cur+N-1)%N,-1));
+document.getElementById('next').addEventListener('click',()=>goTo((cur+1)%N,1));
+dots[0].style.background=DOT_COLORS[0];
+pf.style.background=COLORS[0];
+applyTheme(cur);
+resetTimer();
+
+const canvas=document.getElementById('bgc');
+const ctx=canvas.getContext('2d');
+const hp=document.getElementById('hp');
+function rsz(){canvas.width=hp.offsetWidth;canvas.height=hp.offsetHeight}
+rsz();window.addEventListener('resize',rsz);
+const pts=Array.from({length:100},()=>({
+  x:Math.random()*1200,y:Math.random()*900,
+  vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,
+  r:Math.random()*1+.25,o:Math.random()*.5+.08
+}));
+(function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${p.o})`;ctx.fill();
+  });
+  pts.forEach((a,i)=>{
+    for(let j=i+1;j<pts.length;j++){
+      const b=pts[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<110){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(255,255,255,${.04*(1-d/110)})`;ctx.lineWidth=.4;ctx.stroke()}
+    }
+  });
+  requestAnimationFrame(draw);
+})();
+</script>
